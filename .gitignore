@@ -11,6 +11,7 @@ test-results/
 playwright-report/
 backend/coverage/
 frontend/coverage/
+graphify-out/
 
 # Additional generated artifacts from test runners and coverage tools
 *.lcov

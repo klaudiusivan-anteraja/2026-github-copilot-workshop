@@ -83,8 +83,22 @@
 
       <!-- Action buttons -->
       <div class="btn-group">
-        <RouterLink to="/requisitions" class="btn btn-outline">Cancel</RouterLink>
-        <button class="btn btn-primary" type="submit">Save As Draft</button>
+        <button
+          class="btn btn-draft"
+          type="submit"
+          :disabled="isSubmitting"
+          @click="submitAction = 'DRAFT'"
+        >
+          {{ isSubmitting && submitAction === 'DRAFT' ? 'Saving...' : 'Save As Draft' }}
+        </button>
+        <button
+          class="btn btn-primary"
+          type="submit"
+          :disabled="isSubmitting"
+          @click="submitAction = 'SUBMITTED'"
+        >
+          {{ isSubmitting && submitAction === 'SUBMITTED' ? 'Submitting...' : 'Submit PR' }}
+        </button>
       </div>
     </form>
   </section>
@@ -97,6 +111,9 @@ import { api } from '../api';
 
 const router = useRouter();
 const errorMessage = ref('');
+const isSubmitting = ref(false);
+const submitAction = ref('DRAFT');
+const createdRequisitionId = ref('');
 
 function emptyLine() {
   return {
@@ -131,15 +148,26 @@ function removeLine(index) {
 
 async function handleSubmit() {
   errorMessage.value = '';
+  isSubmitting.value = true;
   try {
-    const payload = {
-      ...form,
-      lines: form.lines.map((line) => ({ ...line })),
-    };
-    const created = await api.createRequisition(payload);
-    await router.push(`/requisitions/${created.id}`);
+    if (!createdRequisitionId.value) {
+      const payload = {
+        ...form,
+        lines: form.lines.map((line) => ({ ...line })),
+      };
+      const created = await api.createRequisition(payload);
+      createdRequisitionId.value = created.id;
+    }
+
+    if (submitAction.value === 'SUBMITTED') {
+      await api.submitRequisition(createdRequisitionId.value);
+    }
+
+    await router.push(`/requisitions/${createdRequisitionId.value}`);
   } catch (error) {
     errorMessage.value = error.message;
+  } finally {
+    isSubmitting.value = false;
   }
 }
 </script>
@@ -156,5 +184,15 @@ async function handleSubmit() {
 .card-panel table input:focus {
   border-color: var(--primary);
   outline: none;
+}
+
+.btn-draft {
+  background: var(--primary-light);
+  color: var(--white);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 </style>

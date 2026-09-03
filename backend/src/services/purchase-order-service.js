@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 // ── Mappers ──────────────────────────────────────────────
 
 function mapHeader(row) {
-  return {
+  const header = {
     id: row.id,
     poNumber: row.po_number,
     status: row.status,
@@ -11,6 +11,15 @@ function mapHeader(row) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+
+  if (row.pr_number !== undefined) {
+    header.prNumber = row.pr_number;
+  }
+  if (row.requester_name !== undefined) {
+    header.requesterName = row.requester_name;
+  }
+
+  return header;
 }
 
 function mapLine(row) {
@@ -76,9 +85,16 @@ function validateCreatePayload(payload) {
 
 export async function listPurchaseOrders(db) {
   const { rows } = await db.query(
-    `SELECT id, po_number, status, vendor_name, created_at, updated_at
-     FROM purchase_orders
-     ORDER BY created_at DESC`
+    `SELECT po.id, po.po_number, po.status, po.vendor_name, po.created_at, po.updated_at,
+            STRING_AGG(DISTINCT pr.pr_number, ', ') AS pr_number,
+            STRING_AGG(DISTINCT pr.requester_name, ', ') AS requester_name
+     FROM purchase_orders po
+     LEFT JOIN po_lines pol ON pol.po_id = po.id
+     LEFT JOIN pr_line_allocations a ON a.po_line_id = pol.id
+     LEFT JOIN pr_lines pl ON pl.id = a.pr_line_id
+     LEFT JOIN purchase_requisitions pr ON pr.id = pl.pr_id
+     GROUP BY po.id, po.po_number, po.status, po.vendor_name, po.created_at, po.updated_at
+    ORDER BY po.created_at DESC`
   );
 
   return rows.map(mapHeader);
@@ -101,10 +117,12 @@ export async function getPurchaseOrderById(db, id) {
 
   // For each PO line, fetch its allocation source (PR line info)
   const lines = [];
+  const prNumbers = new Set();
+  const requesterNames = new Set();
   for (const row of linesResult.rows) {
     const allocResult = await db.query(
-      `SELECT a.pr_line_id, a.allocated_qty, pl.pr_id,
-              pr.pr_number
+          `SELECT a.pr_line_id, a.allocated_qty, pl.pr_id,
+            pr.pr_number, pr.requester_name
        FROM pr_line_allocations a
        JOIN pr_lines pl ON pl.id = a.pr_line_id
        JOIN purchase_requisitions pr ON pr.id = pl.pr_id
@@ -113,16 +131,26 @@ export async function getPurchaseOrderById(db, id) {
     );
 
     const mapped = mapLine(row);
-    mapped.allocations = allocResult.rows.map((a) => ({
-      prLineId: a.pr_line_id,
-      prNumber: a.pr_number,
-      allocatedQty: Number(a.allocated_qty),
-    }));
+    mapped.allocations = allocResult.rows.map((a) => {
+      prNumbers.add(a.pr_number);
+      requesterNames.add(a.requester_name);
+      const allocation = {
+        prLineId: a.pr_line_id,
+        prNumber: a.pr_number,
+        allocatedQty: Number(a.allocated_qty),
+      };
+      if (a.requester_name !== undefined) {
+        allocation.requesterName = a.requester_name;
+      }
+      return allocation;
+    });
     lines.push(mapped);
   }
 
   return {
     ...mapHeader(headerResult.rows[0]),
+    prNumber: [...prNumbers].filter(Boolean).join(', ') || null,
+    requesterName: [...requesterNames].filter(Boolean).join(', ') || null,
     lines,
   };
 }
@@ -170,9 +198,23 @@ export async function createPurchaseOrder(db, payload) {
   try {
     await client.query('BEGIN');
 
-    // Lock and validate every referenced PR line
+    // Lock and validate every referenced PR line. Aggregate duplicate references
+    // so the combined allocation cannot exceed the PR line's remaining quantity.
+    const requestedByPrLine = new Map();
+    for (const line of payload.lines) {
+      requestedByPrLine.set(
+        line.prLineId,
+        (requestedByPrLine.get(line.prLineId) || 0) + Number(line.qtyOrdered)
+      );
+    }
+
+    const remainingByPrLine = new Map();
     for (let i = 0; i < payload.lines.length; i++) {
       const line = payload.lines[i];
+
+      if (remainingByPrLine.has(line.prLineId)) {
+        continue;
+      }
 
       // Lock the PR line row to prevent concurrent over-allocation
       const prLineResult = await client.query(
@@ -199,9 +241,13 @@ export async function createPurchaseOrder(db, payload) {
       }
 
       const remaining = Number(prLine.qty_requested) - Number(prLine.qty_allocated);
-      if (Number(line.qtyOrdered) > remaining) {
+      remainingByPrLine.set(line.prLineId, remaining);
+      const requestedQty = requestedByPrLine.get(line.prLineId);
+      if (requestedQty > remaining) {
         const err = new Error(
-          `lines[${i}]: allocation qty ${line.qtyOrdered} exceeds remaining ${remaining}`
+          requestedQty === Number(line.qtyOrdered)
+            ? `lines[${i}]: allocation qty ${line.qtyOrdered} exceeds remaining ${remaining}`
+            : `lines[${i}]: total allocation qty ${requestedQty} exceeds remaining ${remaining} for PR line ${line.prLineId}`
         );
         err.statusCode = 422;
         throw err;
