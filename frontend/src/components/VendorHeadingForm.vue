@@ -47,19 +47,20 @@ const form = {
 
 <style scoped>
 .form-section {
-  background: var(--color-background-secondary);
+  background: var(--white);
   padding: 20px;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
   margin-bottom: 24px;
 }
 
 .form-section-title {
   font-size: 16px;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--text);
   margin: 0 0 16px 0;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
 }
 
 .form-group {
@@ -76,28 +77,28 @@ const form = {
 .form-label {
   font-size: 14px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: var(--text);
 }
 
 .form-input {
   padding: 10px 12px;
   font-size: 14px;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: var(--color-background-primary);
-  color: var(--color-text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  background: var(--bg);
+  color: var(--text);
   transition: border-color 0.2s;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(255, 64, 129, 0.1);
 }
 
 .form-error {
   font-size: 13px;
-  color: var(--color-error);
+  color: #c62828;
   margin-top: 4px;
 }
 </style>

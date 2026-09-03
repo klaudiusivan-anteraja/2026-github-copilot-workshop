@@ -94,9 +94,9 @@ Before considering a PO task complete, confirm all of the following:
 
 ## Codebase Context & Knowledge Graph Protocol
 
-You have access to a pre-computed AST knowledge graph of this repository at `graphify-out/graph.json`. To minimize context window clutter, prevent hallucinations, and accurately map cross-file dependencies, you MUST follow these routing rules:
+Some environments may provide a pre-computed AST knowledge graph at `graphify-out/graph.json`. When it is present, use it to minimize context window clutter, prevent hallucinations, and accurately map cross-file dependencies. On fresh clones where the file is absent, fall back to direct repository inspection (`glob`, `rg`, `view`) and do not assume the artifact exists.
 
-1. **Consult the Graph First:** Before writing plans, making sweeping structural modifications, or tracing function call blast-radii, read `graphify-out/graph.json`. Filter nodes to only those whose `id` paths start with `backend/` or `frontend/src/` — nodes from `playwright-report/`, `test-results/`, and `coverage/` are minified build artifacts and must be ignored.
+1. **Consult the Graph First When Available:** Before writing plans, making sweeping structural modifications, or tracing function call blast-radii, read `graphify-out/graph.json` if it exists. Filter nodes to only those whose `id` paths start with `backend/` or `frontend/src/` — nodes from `playwright-report/`, `test-results/`, and `coverage/` are minified build artifacts and must be ignored.
 2. **Identify God Nodes:** Rank nodes by edge degree. The highest-degree nodes are the structural hubs (e.g., service files, route registries). Avoid duplicating responsibilities already owned by a god node.
 3. **Trace Structural Paths:** If the user asks about relationships between modules or layers (e.g., how the API layer reaches the DB), do not grep blindly. Traverse the `links` array in `graph.json` to find the actual dependency path.
 4. **Graph State:** The graph is derived strictly via AST extraction — no documentation or semantic layer. Treat all node hierarchies and import edges as 100% extracted truth (`EXTRACTED` confidence tier). Do not infer structure that isn't in the graph.

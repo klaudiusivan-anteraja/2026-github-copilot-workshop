@@ -93,6 +93,11 @@ npm install
 npm run dev
 ```
 
+### 4) Enable repository Git hooks
+```bash
+npm run setup:githooks
+```
+
 ## Validation Rules
 1. PO allocation qty must not exceed PR line remaining qty.
 2. PO status transition rules must be enforced.

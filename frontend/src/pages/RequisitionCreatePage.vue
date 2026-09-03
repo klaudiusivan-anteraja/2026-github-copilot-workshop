@@ -113,6 +113,7 @@ const router = useRouter();
 const errorMessage = ref('');
 const isSubmitting = ref(false);
 const submitAction = ref('DRAFT');
+const createdRequisitionId = ref('');
 
 function emptyLine() {
   return {
@@ -149,17 +150,20 @@ async function handleSubmit() {
   errorMessage.value = '';
   isSubmitting.value = true;
   try {
-    const payload = {
-      ...form,
-      lines: form.lines.map((line) => ({ ...line })),
-    };
-    const created = await api.createRequisition(payload);
-
-    if (submitAction.value === 'SUBMITTED') {
-      await api.submitRequisition(created.id);
+    if (!createdRequisitionId.value) {
+      const payload = {
+        ...form,
+        lines: form.lines.map((line) => ({ ...line })),
+      };
+      const created = await api.createRequisition(payload);
+      createdRequisitionId.value = created.id;
     }
 
-    await router.push(`/requisitions/${created.id}`);
+    if (submitAction.value === 'SUBMITTED') {
+      await api.submitRequisition(createdRequisitionId.value);
+    }
+
+    await router.push(`/requisitions/${createdRequisitionId.value}`);
   } catch (error) {
     errorMessage.value = error.message;
   } finally {
@@ -183,7 +187,7 @@ async function handleSubmit() {
 }
 
 .btn-draft {
-  background: #ffb900;
+  background: var(--primary-light);
   color: var(--white);
 }
 

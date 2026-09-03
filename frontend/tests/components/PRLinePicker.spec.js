@@ -104,18 +104,9 @@ describe('PRLinePicker.vue', () => {
     expect(emitted).toContain('pr-line-001');
   });
 
-  test('should track selected lines via internal state', async () => {
-    const checkboxes = wrapper.findAll('input[type="checkbox"]');
-    
-    // Click first line's checkbox to select it
-    await checkboxes[1].setValue(true);
-    
-    // Verify emit was called
-    expect(wrapper.emitted('update:selectedLineIds')).toBeTruthy();
-    
-    // After emitting, component's internal state should reflect selection
-    // Re-find checkboxes after state update
-    await wrapper.vm.$nextTick();
+  test('should reflect parent-driven selectedLineIds updates', async () => {
+    await wrapper.setProps({ selectedLineIds: ['pr-line-001'] });
+
     const updatedCheckboxes = wrapper.findAll('input[type="checkbox"]');
     expect(updatedCheckboxes[1].element.checked).toBe(true);
   });
@@ -158,22 +149,23 @@ describe('PRLinePicker.vue', () => {
   test('should deselect line when checkbox is unchecked', async () => {
     const checkboxes = wrapper.findAll('input[type="checkbox"]');
     
-    // First, select both lines
     await checkboxes[1].setValue(true); // Select line 1
-    await checkboxes[2].setValue(true); // Select line 2
-    
+    await wrapper.setProps({ selectedLineIds: ['pr-line-001'] });
+
     expect(wrapper.emitted('update:selectedLineIds')).toBeTruthy();
     const firstEmit = wrapper.emitted('update:selectedLineIds')[0][0];
     expect(firstEmit).toContain('pr-line-001');
+
+    const updatedCheckboxes = wrapper.findAll('input[type="checkbox"]');
+    await updatedCheckboxes[2].setValue(true); // Select line 2
+    await wrapper.setProps({ selectedLineIds: ['pr-line-001', 'pr-line-002'] });
     
     const secondEmit = wrapper.emitted('update:selectedLineIds')[1][0];
     expect(secondEmit).toContain('pr-line-001');
     expect(secondEmit).toContain('pr-line-002');
     
-    // Then uncheck first line
-    await wrapper.vm.$nextTick();
-    const updatedCheckboxes = wrapper.findAll('input[type="checkbox"]');
-    await updatedCheckboxes[1].setValue(false);
+    const finalCheckboxes = wrapper.findAll('input[type="checkbox"]');
+    await finalCheckboxes[1].setValue(false);
     
     const thirdEmit = wrapper.emitted('update:selectedLineIds')[2][0];
     expect(thirdEmit).not.toContain('pr-line-001');
@@ -207,6 +199,6 @@ describe('PRLinePicker.vue', () => {
     const retryBtn = wrapper.find('.btn-outline');
     expect(retryBtn.exists()).toBe(true);
     expect(retryBtn.text()).toContain('Retry');
+    expect(retryBtn.attributes('type')).toBe('button');
   });
 });
-

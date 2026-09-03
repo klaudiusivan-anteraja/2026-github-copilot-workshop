@@ -9,7 +9,7 @@ async function start() {
     console.log('\n✅ Procurement MVP Backend Started');
     console.log(`   API: http://localhost:${config.port}`);
     console.log(`   Swagger UI: http://localhost:${config.port}/api-docs`);
-    console.log(`   OpenAPI JSON: http://localhost:${config.port}/swagger/json\n`);
+    console.log(`   OpenAPI JSON: http://localhost:${config.port}/api-docs/json\n`);
   } catch (error) {
     app.log.error(error);
     process.exit(1);

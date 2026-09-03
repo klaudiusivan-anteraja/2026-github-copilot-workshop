@@ -81,20 +81,35 @@ export default async function requisitionRoutes(fastify) {
       description: 'Create a new purchase requisition with line items',
       body: {
         type: 'object',
-        required: ['description', 'required_date', 'lines'],
+        required: ['requesterName', 'departmentName', 'title', 'lines'],
         properties: {
-          description: { type: 'string' },
-          required_date: { type: 'string' },
+          requesterName: { type: 'string', minLength: 1 },
+          departmentName: { type: 'string', minLength: 1 },
+          title: { type: 'string', minLength: 1 },
+          notes: { type: ['string', 'null'] },
+          neededByDate: { type: ['string', 'null'] },
           lines: {
             type: 'array',
+            minItems: 1,
             items: {
               type: 'object',
-              required: ['item_code', 'description', 'qty_required', 'unit_price'],
+              required: [
+                'itemCode',
+                'itemName',
+                'qtyRequested',
+                'uom',
+                'estUnitPrice',
+                'siteCode',
+              ],
               properties: {
-                item_code: { type: 'string' },
-                description: { type: 'string' },
-                qty_required: { type: 'number' },
-                unit_price: { type: 'number' },
+                itemCode: { type: 'string', minLength: 1 },
+                itemName: { type: 'string', minLength: 1 },
+                qtyRequested: { type: 'number', exclusiveMinimum: 0 },
+                uom: { type: 'string', minLength: 1 },
+                estUnitPrice: { type: 'number', minimum: 0 },
+                siteCode: { type: 'string', minLength: 1 },
+                requiredDate: { type: ['string', 'null'] },
+                budgetCenter: { type: ['string', 'null'] },
               },
             },
           },
@@ -103,6 +118,7 @@ export default async function requisitionRoutes(fastify) {
       response: {
         201: requisitionSchema,
         400: errorSchema,
+        422: errorSchema,
       },
     },
   }, async (request, reply) => {

@@ -254,6 +254,60 @@ describe('createPurchaseOrder – over-allocation guard', () => {
     expect(client.query).toHaveBeenCalledWith('COMMIT');
   });
 
+  test('rejects when duplicate allocations to the same PR line exceed remaining qty in total', async () => {
+    const client = mockClient((sql) => {
+      if (sql === 'BEGIN' || sql === 'ROLLBACK') return { rows: [], rowCount: 0 };
+      if (sql.includes('FOR UPDATE')) {
+        return {
+          rows: [{ id: 'pr-line-001', qty_requested: 10, qty_allocated: 4, pr_status: 'APPROVED' }],
+          rowCount: 1,
+        };
+      }
+      return { rows: [], rowCount: 0 };
+    });
+    const db = mockDb(client);
+
+    const payload = validPayload({
+      lines: [
+        { ...validPayload().lines[0], qtyOrdered: 3 },
+        { ...validPayload().lines[0], itemCode: 'BRG-002', itemName: 'Safety Vest', qtyOrdered: 4 },
+      ],
+    });
+
+    await expect(createPurchaseOrder(db, payload))
+      .rejects.toMatchObject({
+        message: 'lines[0]: total allocation qty 7 exceeds remaining 6 for PR line pr-line-001',
+        statusCode: 422,
+      });
+  });
+
+  test('allows duplicate allocations when their total equals the exact remaining qty', async () => {
+    const client = mockClient((sql) => {
+      if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') return { rows: [], rowCount: 0 };
+      if (sql.includes('FOR UPDATE')) {
+        return {
+          rows: [{ id: 'pr-line-001', qty_requested: 10, qty_allocated: 4, pr_status: 'APPROVED' }],
+          rowCount: 1,
+        };
+      }
+      if (sql.includes('COUNT(*)')) return { rows: [{ total: 0 }], rowCount: 1 };
+      return { rows: [], rowCount: 1 };
+    });
+    const db = mockDb(client, detailQueryResponses());
+
+    const payload = validPayload({
+      lines: [
+        { ...validPayload().lines[0], qtyOrdered: 2 },
+        { ...validPayload().lines[0], itemCode: 'BRG-002', itemName: 'Safety Vest', qtyOrdered: 4 },
+      ],
+    });
+
+    const result = await createPurchaseOrder(db, payload);
+    expect(result).toBeDefined();
+    expect(result.status).toBe('DRAFT');
+    expect(client.query).toHaveBeenCalledWith('COMMIT');
+  });
+
   test('rejects when PR line does not exist', async () => {
     const client = mockClient((sql) => {
       if (sql === 'BEGIN' || sql === 'ROLLBACK') return { rows: [], rowCount: 0 };

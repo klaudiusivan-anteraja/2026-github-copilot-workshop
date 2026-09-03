@@ -65,14 +65,7 @@ Each route now includes a `schema` property that documents:
 ### Example Route
 
 ```javascript
-fastify.get('/api/requisitions/:id', async (request, reply) => {
-  const requisition = await getRequisitionById(fastify.db, request.params.id);
-  if (!requisition) {
-    reply.code(404);
-    return { message: 'Requisition not found' };
-  }
-  return requisition;
-}, {
+fastify.get('/api/requisitions/:id', {
   schema: {
     tags: ['Requisitions'],
     summary: 'Get requisition by ID',
@@ -89,6 +82,13 @@ fastify.get('/api/requisitions/:id', async (request, reply) => {
       404: errorSchema,
     },
   },
+}, async (request, reply) => {
+  const requisition = await getRequisitionById(fastify.db, request.params.id);
+  if (!requisition) {
+    reply.code(404);
+    return { message: 'Requisition not found' };
+  }
+  return requisition;
 });
 ```
 
@@ -113,7 +113,7 @@ This provides an interactive interface to:
 The generated OpenAPI/Swagger JSON specification is available at:
 
 ```
-http://localhost:3000/swagger/json
+http://localhost:3000/api-docs/json
 ```
 
 This can be used with tools like:
@@ -152,9 +152,13 @@ const requisitionSchema = {
   type: 'object',
   properties: {
     id: { type: 'string' },
-    description: { type: 'string' },
-    required_date: { type: 'string' },
+    prNumber: { type: 'string' },
     status: { type: 'string' },
+    requesterName: { type: 'string' },
+    departmentName: { type: 'string' },
+    title: { type: 'string' },
+    notes: { type: ['string', 'null'] },
+    neededByDate: { type: ['string', 'null'] },
     lines: { /* line items array */ },
   },
 };
@@ -166,11 +170,13 @@ const purchaseOrderSchema = {
   type: 'object',
   properties: {
     id: { type: 'string' },
-    pr_id: { type: 'string' },
+    poNumber: { type: 'string' },
     status: { type: 'string' },
-    vendor: { type: 'string' },
-    vendor_email: { type: 'string' },
-    total_amount: { type: 'number' },
+    vendorName: { type: 'string' },
+    prNumber: { type: ['string', 'null'] },
+    requesterName: { type: ['string', 'null'] },
+    createdAt: { type: 'string' },
+    updatedAt: { type: 'string' },
     lines: { /* line items array */ },
   },
 };

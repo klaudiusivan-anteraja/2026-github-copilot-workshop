@@ -69,6 +69,11 @@ export function buildApp() {
       return;
     }
 
+    if (error.statusCode >= 400 && error.statusCode < 500) {
+      reply.code(error.statusCode).send({ message: error.message });
+      return;
+    }
+
     reply.code(500).send({ message: 'Internal server error' });
   });
 

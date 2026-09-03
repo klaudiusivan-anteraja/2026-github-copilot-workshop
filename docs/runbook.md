@@ -210,7 +210,7 @@ Read [frontend/src/pages/PurchaseOrderCreatePage.vue](frontend/src/pages/Purchas
      - On 422: Display error message (inline, not modal)
    - [ ] "Cancel" button: Navigate back to `/purchase-orders`
 
-**When building, reuse baseline components** (e.g., HeaderForm pattern for layout, error display style from RequisitionCreatePage)
+**When building, reuse baseline components** (e.g., existing `card-panel` layout and the error display style from `RequisitionCreatePage`)
 
 **How to verify:**
 ```bash
@@ -415,7 +415,7 @@ Update or create [tests/e2e/po-flow.spec.js](tests/e2e/po-flow.spec.js) with the
 
 **Run tests:**
 ```bash
-cd /Users/klaudiusivan/Documents/Anteraja/MAXY\ Training/2026-github-copilot-workshop-main
+cd "$(git rev-parse --show-toplevel)"
 npm run test:e2e
 
 # Expected: All PO Playwright tests pass

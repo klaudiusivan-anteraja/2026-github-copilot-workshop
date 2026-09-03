@@ -100,13 +100,9 @@ describe('LineAllocationForm.vue', () => {
     expect(wrapper.emitted('remove-line')[0]).toEqual([0]); // First line index
   });
 
-  test('should update selectedLines when remove button clicked', async () => {
+  test('should render remove button as a non-submit button', () => {
     const removeBtn = wrapper.find('.btn-remove');
-    await removeBtn.trigger('click');
-    
-    expect(wrapper.emitted('update:selectedLines')).toBeTruthy();
-    // Emitted array should be empty (removed the only line)
-    expect(wrapper.emitted('update:selectedLines')[0][0]).toEqual([]);
+    expect(removeBtn.attributes('type')).toBe('button');
   });
 
   test('should display error for qty when validation fails', async () => {
@@ -154,4 +150,3 @@ describe('LineAllocationForm.vue', () => {
     expect(cards).toHaveLength(2);
   });
 });
-

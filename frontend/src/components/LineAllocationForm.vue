@@ -14,6 +14,7 @@
             <span class="line-name">{{ line.itemName }}</span>
           </div>
           <button
+            type="button"
             class="btn-remove"
             @click="removeLine(index)"
             title="Remove this line"
@@ -34,7 +35,7 @@
             </div>
 
             <div class="form-group">
-              <label for="qty-ordered-input" class="form-label">
+              <label :for="`qty-ordered-${line.id}`" class="form-label">
                 Qty Ordered *
               </label>
               <input
@@ -46,7 +47,6 @@
                 min="0.01"
                 step="0.01"
                 placeholder="0.00"
-                @input="validateQtyOrdered(index, line)"
               />
               <span v-if="getError(index, 'qtyOrdered')" class="form-error">
                 {{ getError(index, 'qtyOrdered') }}
@@ -54,7 +54,7 @@
             </div>
 
             <div class="form-group">
-              <label for="unit-price-input" class="form-label">
+              <label :for="`unit-price-${line.id}`" class="form-label">
                 Unit Price *
               </label>
               <input
@@ -73,7 +73,7 @@
             </div>
 
             <div class="form-group">
-              <label for="required-date-input" class="form-label">
+              <label :for="`required-date-${line.id}`" class="form-label">
                 Required Date
               </label>
               <input
@@ -104,19 +104,10 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:selectedLines', 'remove-line']);
+const emit = defineEmits(['remove-line']);
 
 const removeLine = (index) => {
-  const updated = props.selectedLines.filter((_, i) => i !== index);
-  emit('update:selectedLines', updated);
   emit('remove-line', index);
-};
-
-const validateQtyOrdered = (index, line) => {
-  // Client-side validation: qty must not exceed remaining
-  if (line.qtyOrdered > line.qtyRemaining) {
-    // Validation error will be shown via getError()
-  }
 };
 
 const getError = (index, field) => {
@@ -127,19 +118,20 @@ const getError = (index, field) => {
 
 <style scoped>
 .allocation-section {
-  background: var(--color-background-secondary);
+  background: var(--white);
   padding: 20px;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
   margin-bottom: 24px;
 }
 
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--text);
   margin: 0 0 16px 0;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
 }
 
 .allocation-list {
@@ -149,16 +141,16 @@ const getError = (index, field) => {
 }
 
 .allocation-card {
-  background: var(--color-background-primary);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
   padding: 16px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .allocation-card:hover {
-  border-color: var(--color-primary);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(255, 64, 129, 0.1);
 }
 
 .card-header {
@@ -167,7 +159,7 @@ const getError = (index, field) => {
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
 }
 
 .line-info {
@@ -179,20 +171,20 @@ const getError = (index, field) => {
 .line-label {
   font-weight: 600;
   font-size: 13px;
-  color: var(--color-primary);
+  color: var(--primary);
   font-family: monospace;
   text-transform: uppercase;
 }
 
 .line-name {
   font-size: 14px;
-  color: var(--color-text-primary);
+  color: var(--text);
 }
 
 .btn-remove {
   background: transparent;
   border: none;
-  color: var(--color-text-secondary);
+  color: var(--text-muted);
   font-size: 20px;
   cursor: pointer;
   padding: 4px 8px;
@@ -201,8 +193,8 @@ const getError = (index, field) => {
 }
 
 .btn-remove:hover {
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--color-error);
+  background: rgba(255, 64, 129, 0.1);
+  color: var(--primary);
 }
 
 .card-body {
@@ -226,49 +218,49 @@ const getError = (index, field) => {
 .form-label {
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-text-primary);
+  color: var(--text);
 }
 
 .form-input {
   padding: 8px 10px;
   font-size: 14px;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: var(--color-background-secondary);
-  color: var(--color-text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  background: var(--bg);
+  color: var(--text);
   transition: border-color 0.2s;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(255, 64, 129, 0.1);
 }
 
 .form-input.input-error {
-  border-color: var(--color-error);
-  background: rgba(239, 68, 68, 0.05);
+  border-color: #c62828;
+  background: rgba(198, 40, 40, 0.05);
 }
 
 .readonly-value {
   padding: 8px 10px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-primary);
-  background: rgba(34, 197, 94, 0.05);
-  border-radius: 4px;
-  border: 1px solid var(--color-border);
+  color: var(--primary);
+  background: rgba(255, 64, 129, 0.08);
+  border-radius: var(--radius-input);
+  border: 1px solid var(--border);
 }
 
 .form-hint {
   font-size: 12px;
-  color: var(--color-text-secondary);
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
 .form-error {
   font-size: 12px;
-  color: var(--color-error);
+  color: #c62828;
   margin-top: 2px;
 }
 </style>

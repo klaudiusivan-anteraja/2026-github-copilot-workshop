@@ -33,7 +33,6 @@
       <LineAllocationForm
         :selectedLines="selectedLines"
         :errors="lineAllocationErrors"
-        @update:selectedLines="selectedLines = $event"
         @remove-line="onRemoveLine"
       />
 
@@ -79,6 +78,26 @@ const fieldErrors = ref({});
 const loadingPrLines = ref(false);
 const errorLoadingPrLines = ref('');
 const lineAllocationErrors = ref([]);
+
+const getLineErrors = (line) => {
+  const errors = {};
+
+  if (!line.qtyOrdered || line.qtyOrdered <= 0) {
+    errors.qtyOrdered = 'Quantity must be greater than 0';
+  } else if (line.qtyOrdered > line.qtyRemaining) {
+    errors.qtyOrdered = `Quantity cannot exceed remaining ${line.qtyRemaining}`;
+  }
+
+  if (line.unitPrice < 0) {
+    errors.unitPrice = 'Unit price cannot be negative';
+  }
+
+  return errors;
+};
+
+const syncLineAllocationErrors = () => {
+  lineAllocationErrors.value = selectedLines.value.map((line) => getLineErrors(line));
+};
 
 // Computed properties
 const isFormValid = computed(() => {
@@ -144,7 +163,7 @@ const updateSelectedLines = () => {
       id: lineId,
       ...prLine,
       qtyOrdered: 0,
-      unitPrice: prLine.unitPrice || 0,
+      unitPrice: prLine.estUnitPrice || 0,
       requiredDate: prLine.requiredDate || '',
     };
   });
@@ -153,7 +172,16 @@ const updateSelectedLines = () => {
 };
 
 const onRemoveLine = (index) => {
-  const lineId = selectedLines.value[index].id;
+  const line = selectedLines.value[index];
+  if (!line) {
+    return;
+  }
+
+  const lineId = line.id;
+  selectedLines.value = selectedLines.value.filter((_, currentIndex) => currentIndex !== index);
+  lineAllocationErrors.value = lineAllocationErrors.value.filter(
+    (_, currentIndex) => currentIndex !== index
+  );
   selectedLineIds.value = selectedLineIds.value.filter((id) => id !== lineId);
 };
 
@@ -170,25 +198,11 @@ const validateForm = () => {
 
   // Validate each line
   selectedLines.value.forEach((line, index) => {
-    const errors = {};
-
-    if (!line.qtyOrdered || line.qtyOrdered <= 0) {
-      errors.qtyOrdered = 'Quantity must be greater than 0';
-      isValid = false;
-    }
-
-    if (line.qtyOrdered > line.qtyRemaining) {
-      errors.qtyOrdered = `Quantity cannot exceed remaining ${line.qtyRemaining}`;
-      isValid = false;
-    }
-
-    if (line.unitPrice < 0) {
-      errors.unitPrice = 'Unit price cannot be negative';
-      isValid = false;
-    }
+    const errors = getLineErrors(line);
 
     if (Object.keys(errors).length > 0) {
       lineAllocationErrors.value[index] = errors;
+      isValid = false;
     }
   });
 
@@ -232,6 +246,7 @@ const handleSubmit = async () => {
 
 // Watchers
 watch(selectedLineIds, updateSelectedLines, { deep: true });
+watch(selectedLines, syncLineAllocationErrors, { deep: true, immediate: true });
 
 // Lifecycle
 onMounted(loadPrLines);
@@ -248,7 +263,7 @@ section {
   align-items: flex-start;
   margin-bottom: 24px;
   padding-bottom: 20px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
 }
 
 .page-header-left {
@@ -265,12 +280,12 @@ section {
   margin: 0 0 4px 0;
   font-size: 28px;
   font-weight: 700;
-  color: var(--color-text-primary);
+  color: var(--text);
 }
 
 .page-header-left .muted {
   margin: 0;
-  color: var(--color-text-secondary);
+  color: var(--text-muted);
   font-size: 14px;
 }
 
@@ -280,27 +295,26 @@ section {
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: 6px;
-  background: var(--color-background-secondary);
-  color: var(--color-text-primary);
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--white);
   text-decoration: none;
-  border: 1px solid var(--color-border);
-  transition: all 0.2s;
+  border: none;
+  transition: opacity 0.15s;
   font-size: 20px;
 }
 
 .back-btn:hover {
-  background: var(--color-background-tertiary);
-  border-color: var(--color-primary);
+  opacity: 0.85;
 }
 
 .error {
   padding: 12px 16px;
   margin-bottom: 20px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid var(--color-error);
-  border-radius: 6px;
-  color: var(--color-error);
+  background: rgba(198, 40, 40, 0.08);
+  border: 1px solid #c62828;
+  border-radius: var(--radius-input);
+  color: #c62828;
   font-size: 14px;
 }
 
@@ -315,17 +329,17 @@ section {
   gap: 12px;
   justify-content: flex-end;
   padding-top: 12px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
 }
 
 .btn {
-  padding: 10px 20px;
+  padding: 10px 24px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-btn);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: opacity 0.15s;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -333,25 +347,19 @@ section {
   min-width: 120px;
 }
 
-.btn-outline {
-  border: 1px solid var(--color-border);
-  background: var(--color-background-primary);
-  color: var(--color-text-primary);
+.btn:hover {
+  opacity: 0.85;
 }
 
-.btn-outline:hover {
-  background: var(--color-background-secondary);
-  border-color: var(--color-primary);
+.btn-outline {
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text);
 }
 
 .btn-primary {
-  background: var(--color-primary);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #2563eb;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  background: var(--primary);
+  color: var(--white);
 }
 
 .btn:disabled {
